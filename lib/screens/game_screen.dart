@@ -16,7 +16,8 @@ class GameScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.copy),
             onPressed: () {
-              final gameId = Provider.of<ChessProvider>(context, listen: false).gameId;
+              final gameId =
+                  Provider.of<ChessProvider>(context, listen: false).gameId;
               if (gameId != null) {
                 Clipboard.setData(ClipboardData(text: gameId));
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -37,14 +38,18 @@ class GameScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      provider.status == 'waiting' 
-                          ? "Waiting for opponent..." 
-                          : (provider.isMyTurn ? "Your Turn" : "Opponent's Turn"),
+                      provider.status == 'waiting'
+                          ? "Waiting for opponent..."
+                          : (provider.status == 'finished'
+                              ? 'Game over'
+                              : (provider.isMyTurn
+                                  ? "Your Turn"
+                                  : "Opponent's Turn")),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: provider.status == 'waiting' 
-                            ? Colors.orange 
+                        color: provider.status == 'waiting'
+                            ? Colors.orange
                             : (provider.isMyTurn ? Colors.green : Colors.grey),
                       ),
                     ),
@@ -60,21 +65,28 @@ class GameScreen extends StatelessWidget {
                   child: SimpleChessBoard(
                     fen: provider.fen,
                     blackSideAtBottom: !provider.isWhite,
-                    whitePlayerType: provider.isWhite ? PlayerType.human : PlayerType.computer,
-                    blackPlayerType: !provider.isWhite ? PlayerType.human : PlayerType.computer,
-                    chessBoardColors: ChessBoardColors(), // Using default colors
+                    whitePlayerType: provider.isWhite
+                        ? PlayerType.human
+                        : PlayerType.computer,
+                    blackPlayerType: !provider.isWhite
+                        ? PlayerType.human
+                        : PlayerType.computer,
+                    chessBoardColors:
+                        ChessBoardColors(), // Using default colors
                     cellHighlights: const {},
                     onMove: ({required ShortMove move}) {
                       if (provider.isMyTurn) {
                         provider.makeMove({
                           'from': move.from,
                           'to': move.to,
-                          'promotion': 'q', 
+                          'promotion': 'q',
                         });
                       }
                     },
                     onPromote: () => _handlePromotion(context),
-                    onPromotionCommited: ({required ShortMove moveDone, required PieceType pieceType}) {
+                    onPromotionCommited: (
+                        {required ShortMove moveDone,
+                        required PieceType pieceType}) {
                       if (provider.isMyTurn) {
                         provider.makeMove({
                           'from': moveDone.from,
@@ -93,19 +105,25 @@ class GameScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Game Over: ${provider.gameResult}',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red),
                     ),
                     ElevatedButton(
-                      onPressed: () => provider.resetGame(),
+                      onPressed: () =>
+                          _runGameAction(context, provider.resetGame),
                       child: const Text('New Game / Rematch'),
                     ),
                   ],
                 )
               else
                 ElevatedButton(
-                  onPressed: () => provider.resign(),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade100),
-                  child: const Text('Resign', style: TextStyle(color: Colors.red)),
+                  onPressed: () => _runGameAction(context, provider.resign),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade100),
+                  child:
+                      const Text('Resign', style: TextStyle(color: Colors.red)),
                 ),
               const SizedBox(height: 10),
               Container(
@@ -153,5 +171,21 @@ class GameScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _runGameAction(
+    BuildContext context,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Unable to update the game. Please try again.')),
+        );
+      }
+    }
   }
 }

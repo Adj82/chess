@@ -8,26 +8,32 @@ class ChessProvider extends ChangeNotifier {
   final GameService _gameService = GameService();
   StreamSubscription? _subscription;
   String? _gameId;
+  String? _userId;
   bool _isWhite = true;
   String _status = 'waiting';
+  String? _result;
 
   String? get gameId => _gameId;
   bool get isWhite => _isWhite;
   String get status => _status;
   String get fen => _game.fen;
   bool get isGameOver => _game.game_over || _status == 'finished';
-  bool get isMyTurn => _status == 'active' && ((_game.turn == chess.Color.WHITE && _isWhite) || (_game.turn == chess.Color.BLACK && !_isWhite));
-  
+  bool get isMyTurn =>
+      _status == 'active' &&
+      ((_game.turn == chess.Color.WHITE && _isWhite) ||
+          (_game.turn == chess.Color.BLACK && !_isWhite));
+
   String? get gameResult {
     if (_game.in_checkmate) return "Checkmate";
     if (_game.in_draw) return "Draw";
     if (_game.in_stalemate) return "Stalemate";
-    return null;
+    return _result;
   }
 
-  void initGame(String gameId, bool isWhite) {
+  void initGame(String gameId, bool isWhite, String userId) {
     _gameId = gameId;
     _isWhite = isWhite;
+    _userId = userId;
     _subscription?.cancel();
     _subscription = _gameService.streamGame(gameId).listen(
       (gameModel) {
@@ -37,6 +43,7 @@ class ChessProvider extends ChangeNotifier {
           _game.load(gameModel.fen);
         }
         _status = gameModel.status;
+        _result = gameModel.result;
         notifyListeners();
       },
       onError: (e) {
@@ -45,23 +52,30 @@ class ChessProvider extends ChangeNotifier {
     );
   }
 
-  void makeMove(dynamic move) {
+  Future<void> makeMove(Map<String, dynamic> move) async {
     if (!isMyTurn) return;
 
+    final previousFen = _game.fen;
+    final previousPgn = _game.pgn();
     final bool result = _game.move(move);
     if (result) {
-      if (_gameId != null) {
-        _gameService.updateMove(
-          _gameId!,
-          _game.fen,
-          _game.pgn(),
-          _game.turn == chess.Color.WHITE ? 'w' : 'b',
-        ).catchError((e) {
+      final gameId = _gameId;
+      final userId = _userId;
+      if (gameId != null && userId != null) {
+        try {
+          await _gameService.submitMove(
+            gameId: gameId,
+            userId: userId,
+            isWhite: _isWhite,
+            previousFen: previousFen,
+            fen: _game.fen,
+            pgn: _game.pgn(),
+            turn: _game.turn == chess.Color.WHITE ? 'w' : 'b',
+            result: _game.game_over ? gameResult ?? 'Game finished' : null,
+          );
+        } catch (e) {
+          _game.load_pgn(previousPgn);
           debugPrint("Error updating move: $e");
-        });
-        
-        if (_game.game_over) {
-          _gameService.finishGame(_gameId!, gameResult ?? "Finished");
         }
       }
       notifyListeners();
@@ -75,16 +89,16 @@ class ChessProvider extends ChangeNotifier {
   }
 
   String get pgn => _game.pgn();
-  
-  void resign() {
-    if (_gameId != null) {
-      _gameService.finishGame(_gameId!, _isWhite ? "White Resigned" : "Black Resigned");
+
+  Future<void> resign() async {
+    if (_gameId != null && _userId != null) {
+      await _gameService.resignGame(_gameId!, _userId!, _isWhite);
     }
   }
 
-  void resetGame() {
-    if (_gameId != null) {
-      _gameService.resetGame(_gameId!);
+  Future<void> resetGame() async {
+    if (_gameId != null && _userId != null) {
+      await _gameService.resetGame(_gameId!, _userId!);
     }
   }
 }
