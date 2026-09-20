@@ -2,8 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:chess_live/providers/auth_provider.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  bool _isSigningIn = false;
+  String? _error;
+
+  Future<void> _signIn() async {
+    setState(() {
+      _isSigningIn = true;
+      _error = null;
+    });
+
+    try {
+      await context.read<AuthProvider>().signInAnonymously();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error =
+              'Sign-in failed. Enable Anonymous sign-in in Firebase Authentication and try again.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isSigningIn = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,12 +48,30 @@ class LoginScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: () => context.read<AuthProvider>().signInAnonymously(),
+              onPressed: _isSigningIn ? null : _signIn,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
               ),
-              child: const Text('Play Anonymously'),
+              child: _isSigningIn
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Play Anonymously'),
             ),
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ],
         ),
       ),
