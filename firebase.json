@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"chess-be462","appId":"1:134606677126:android:f5fa6a9ef6068300d0dd07","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"chess-be462","configurations":{"android":"1:134606677126:android:f5fa6a9ef6068300d0dd07","ios":"1:134606677126:ios:c52359c30a0fb640d0dd07","macos":"1:134606677126:ios:c52359c30a0fb640d0dd07","web":"1:134606677126:web:ddbe8aa2fd8b6ebfd0dd07","windows":"1:134606677126:web:2972e7bde0d0e1f8d0dd07"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "chess-be462",
+          "appId": "1:134606677126:android:f5fa6a9ef6068300d0dd07",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "chess-be462",
+          "configurations": {
+            "android": "1:134606677126:android:f5fa6a9ef6068300d0dd07",
+            "ios": "1:134606677126:ios:c52359c30a0fb640d0dd07",
+            "macos": "1:134606677126:ios:c52359c30a0fb640d0dd07",
+            "web": "1:134606677126:web:ddbe8aa2fd8b6ebfd0dd07",
+            "windows": "1:134606677126:web:2972e7bde0d0e1f8d0dd07"
+          }
+        }
+      }
+    }
+  }
+}

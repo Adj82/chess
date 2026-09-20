@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_stateless_chessboard/flutter_stateless_chessboard.dart';
 import 'package:provider/provider.dart';
 import 'package:chess_live/providers/chess_provider.dart';
-import 'package:chess/chess.dart' as chess;
+import 'package:simple_chess_board/simple_chess_board.dart';
 
 class GameScreen extends StatelessWidget {
   const GameScreen({super.key});
@@ -56,29 +55,51 @@ class GameScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Chessboard(
-                fen: provider.fen,
-                size: MediaQuery.of(context).size.width,
-                orientation: provider.isWhite ? BoardColor.WHITE : BoardColor.BLACK,
-                onMove: (move) async {
-                  if (provider.isMyTurn) {
-                    String promotion = 'q';
-                    if (_isPromotion(provider.fen, move)) {
-                      promotion = await _showPromotionDialog(context);
-                    }
-                    provider.makeMove({
-                      'from': move.from,
-                      'to': move.to,
-                      'promotion': promotion,
-                    });
-                  }
-                },
+              Expanded(
+                child: Center(
+                  child: SimpleChessBoard(
+                    fen: provider.fen,
+                    blackSideAtBottom: !provider.isWhite,
+                    whitePlayerType: provider.isWhite ? PlayerType.human : PlayerType.computer,
+                    blackPlayerType: !provider.isWhite ? PlayerType.human : PlayerType.computer,
+                    chessBoardColors: ChessBoardColors(), // Using default colors
+                    cellHighlights: const {},
+                    onMove: ({required ShortMove move}) {
+                      if (provider.isMyTurn) {
+                        provider.makeMove({
+                          'from': move.from,
+                          'to': move.to,
+                          'promotion': 'q', 
+                        });
+                      }
+                    },
+                    onPromote: () => _handlePromotion(context),
+                    onPromotionCommited: ({required ShortMove moveDone, required PieceType pieceType}) {
+                      if (provider.isMyTurn) {
+                        provider.makeMove({
+                          'from': moveDone.from,
+                          'to': moveDone.to,
+                          'promotion': pieceType.name[0].toLowerCase(),
+                        });
+                      }
+                    },
+                    onTap: ({required String cellCoordinate}) {},
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               if (provider.isGameOver)
-                Text(
-                  'Game Over: ${provider.gameResult}',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                Column(
+                  children: [
+                    Text(
+                      'Game Over: ${provider.gameResult}',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => provider.resetGame(),
+                      child: const Text('New Game / Rematch'),
+                    ),
+                  ],
                 )
               else
                 ElevatedButton(
@@ -87,9 +108,10 @@ class GameScreen extends StatelessWidget {
                   child: const Text('Resign', style: TextStyle(color: Colors.red)),
                 ),
               const SizedBox(height: 10),
-              Expanded(
+              Container(
+                height: 100,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     provider.pgn,
                     style: const TextStyle(fontFamily: 'monospace'),
@@ -103,41 +125,33 @@ class GameScreen extends StatelessWidget {
     );
   }
 
-  bool _isPromotion(String fen, ShortMove move) {
-    final game = chess.Chess();
-    game.load(fen);
-    final piece = game.get(move.from);
-    if (piece?.type == chess.PieceType.PAWN) {
-      if ((piece?.color == chess.Color.WHITE && move.to[1] == '8') ||
-          (piece?.color == chess.Color.BLACK && move.to[1] == '1')) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  Future<String> _showPromotionDialog(BuildContext context) async {
-    return await showDialog<String>(
+  Future<PieceType?> _handlePromotion(BuildContext context) async {
+    return await showDialog<PieceType>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Select Promotion'),
-        content: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _promotionOption(context, 'q', 'Queen'),
-            _promotionOption(context, 'r', 'Rook'),
-            _promotionOption(context, 'b', 'Bishop'),
-            _promotionOption(context, 'n', 'Knight'),
+            ListTile(
+              title: const Text('Queen'),
+              onTap: () => Navigator.pop(context, PieceType.queen),
+            ),
+            ListTile(
+              title: const Text('Rook'),
+              onTap: () => Navigator.pop(context, PieceType.rook),
+            ),
+            ListTile(
+              title: const Text('Bishop'),
+              onTap: () => Navigator.pop(context, PieceType.bishop),
+            ),
+            ListTile(
+              title: const Text('Knight'),
+              onTap: () => Navigator.pop(context, PieceType.knight),
+            ),
           ],
         ),
       ),
-    ) ?? 'q';
-  }
-
-  Widget _promotionOption(BuildContext context, String piece, String label) {
-    return TextButton(
-      onPressed: () => Navigator.pop(context, piece),
-      child: Text(label),
     );
   }
 }

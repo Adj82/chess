@@ -4,7 +4,7 @@ import 'package:chess_live/services/game_service.dart';
 import 'dart:async';
 
 class ChessProvider extends ChangeNotifier {
-  chess.Chess _game = chess.Chess();
+  final chess.Chess _game = chess.Chess();
   final GameService _gameService = GameService();
   StreamSubscription? _subscription;
   String? _gameId;
@@ -29,29 +29,36 @@ class ChessProvider extends ChangeNotifier {
     _gameId = gameId;
     _isWhite = isWhite;
     _subscription?.cancel();
-    _subscription = _gameService.streamGame(gameId).listen((gameModel) {
-      if (gameModel.pgn.isNotEmpty) {
-        _game.load_pgn(gameModel.pgn);
-      } else {
-        _game.load(gameModel.fen);
-      }
-      _status = gameModel.status;
-      notifyListeners();
-    });
+    _subscription = _gameService.streamGame(gameId).listen(
+      (gameModel) {
+        if (gameModel.pgn.isNotEmpty) {
+          _game.load_pgn(gameModel.pgn);
+        } else {
+          _game.load(gameModel.fen);
+        }
+        _status = gameModel.status;
+        notifyListeners();
+      },
+      onError: (e) {
+        debugPrint("Error in game stream: $e");
+      },
+    );
   }
 
   void makeMove(dynamic move) {
     if (!isMyTurn) return;
 
-    final result = _game.move(move);
-    if (result != null) {
+    final bool result = _game.move(move);
+    if (result) {
       if (_gameId != null) {
         _gameService.updateMove(
           _gameId!,
           _game.fen,
           _game.pgn(),
           _game.turn == chess.Color.WHITE ? 'w' : 'b',
-        );
+        ).catchError((e) {
+          debugPrint("Error updating move: $e");
+        });
         
         if (_game.game_over) {
           _gameService.finishGame(_gameId!, gameResult ?? "Finished");

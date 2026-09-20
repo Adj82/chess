@@ -22,7 +22,10 @@ class GameModel {
   });
 
   factory GameModel.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw Exception("Game document does not exist");
+    }
     return GameModel(
       id: doc.id,
       fen: data['fen'] ?? '',

@@ -19,7 +19,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _auth.signInAnonymously();
     } catch (e) {
-      debugPrint("Error signing in: $e");
+      debugPrint("Error signing in anonymously: $e");
       rethrow;
     }
   }
