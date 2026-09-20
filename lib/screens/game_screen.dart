@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:chess_live/providers/chess_provider.dart';
 import 'package:simple_chess_board/simple_chess_board.dart';
+import 'package:chess_live/widgets/tap_chess_board.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -38,14 +39,6 @@ class _GameScreenState extends State<GameScreen> {
       body: Consumer<ChessProvider>(
         builder: (context, provider, child) {
           _maybeAnnounceResult(provider);
-          final lastMove =
-              provider.lastMoveFrom != null && provider.lastMoveTo != null
-                  ? BoardArrow(
-                      from: provider.lastMoveFrom!,
-                      to: provider.lastMoveTo!,
-                      color: Colors.amber.shade700,
-                    )
-                  : null;
           return Column(
             children: [
               Padding(
@@ -70,43 +63,15 @@ class _GameScreenState extends State<GameScreen> {
                 child: Center(
                   child: AspectRatio(
                     aspectRatio: 1,
-                    child: SimpleChessBoard(
+                    child: TapChessBoard(
                       fen: provider.fen,
-                      blackSideAtBottom: !provider.isWhite,
-                      whitePlayerType: provider.isWhite
-                          ? PlayerType.human
-                          : PlayerType.computer,
-                      blackPlayerType: !provider.isWhite
-                          ? PlayerType.human
-                          : PlayerType.computer,
-                      chessBoardColors: ChessBoardColors(),
-                      cellHighlights: const {},
-                      lastMoveToHighlight: lastMove,
-                      highlightLastMoveSquares: true,
-                      showPossibleMoves: true,
-                      playSounds: true,
+                      isWhiteAtBottom: provider.isWhite,
                       isInteractive: provider.isMyTurn && !provider.isGameOver,
-                      nonInteractiveText: provider.status == 'waiting'
-                          ? 'WAITING FOR OPPONENT'
-                          : 'OPPONENT\'S TURN',
-                      onMove: ({required ShortMove move}) {
-                        provider.makeMove({
-                          'from': move.from,
-                          'to': move.to,
-                          'promotion': 'q',
-                        });
-                      },
-                      onPromote: () => _handlePromotion(context),
-                      onPromotionCommited: (
-                          {required ShortMove moveDone,
-                          required PieceType pieceType}) {
-                        provider.makeMove({
-                          'from': moveDone.from,
-                          'to': moveDone.to,
-                          'promotion': pieceType.name[0].toLowerCase(),
-                        });
-                      },
-                      onTap: ({required String cellCoordinate}) {},
+                      isMyPiece: provider.isMyPiece,
+                      legalDestinations: provider.legalDestinations,
+                      lastMoveFrom: provider.lastMoveFrom,
+                      lastMoveTo: provider.lastMoveTo,
+                      onMove: (from, to) => _moveFromBoard(provider, from, to),
                     ),
                   ),
                 ),
@@ -192,6 +157,20 @@ class _GameScreenState extends State<GameScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _moveFromBoard(
+    ChessProvider provider,
+    String from,
+    String to,
+  ) async {
+    var promotion = 'q';
+    if (to.endsWith('1') || to.endsWith('8')) {
+      final selected = await _handlePromotion(context);
+      if (selected == null) return;
+      promotion = selected.name[0].toLowerCase();
+    }
+    await provider.makeMove({'from': from, 'to': to, 'promotion': promotion});
   }
 
   Future<void> _runGameAction(

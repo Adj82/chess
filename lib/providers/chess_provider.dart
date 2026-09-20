@@ -43,6 +43,23 @@ class ChessProvider extends ChangeNotifier {
   String? get lastMoveTo =>
       _game.history.isEmpty ? null : _game.history.last.move.toAlgebraic;
 
+  bool isMyPiece(String square) {
+    final piece = _game.get(square);
+    if (piece == null) return false;
+    return _isWhite
+        ? piece.color == chess.Color.WHITE
+        : piece.color == chess.Color.BLACK;
+  }
+
+  List<String> legalDestinations(String square) {
+    if (!isMyTurn || !isMyPiece(square)) return const [];
+    return _game
+        .moves({'square': square, 'asObjects': true})
+        .cast<chess.Move>()
+        .map((move) => move.toAlgebraic)
+        .toList();
+  }
+
   void initGame(String gameId, bool isWhite, String userId) {
     _gameId = gameId;
     _isWhite = isWhite;
