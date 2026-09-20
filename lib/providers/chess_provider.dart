@@ -18,17 +18,30 @@ class ChessProvider extends ChangeNotifier {
   String get status => _status;
   String get fen => _game.fen;
   bool get isGameOver => _game.game_over || _status == 'finished';
+  bool get isInCheck => _game.in_check && !_game.game_over;
   bool get isMyTurn =>
       _status == 'active' &&
       ((_game.turn == chess.Color.WHITE && _isWhite) ||
           (_game.turn == chess.Color.BLACK && !_isWhite));
 
   String? get gameResult {
-    if (_game.in_checkmate) return "Checkmate";
-    if (_game.in_draw) return "Draw";
-    if (_game.in_stalemate) return "Stalemate";
+    if (_game.in_checkmate) {
+      final winner = _game.turn == chess.Color.WHITE ? 'Black' : 'White';
+      return '$winner wins by checkmate';
+    }
+    if (_game.in_stalemate) return 'Draw by stalemate';
+    if (_game.in_draw) return 'Draw';
     return _result;
   }
+
+  List<String> get moveHistory =>
+      _game.san_moves().whereType<String>().toList();
+
+  String? get lastMoveFrom =>
+      _game.history.isEmpty ? null : _game.history.last.move.fromAlgebraic;
+
+  String? get lastMoveTo =>
+      _game.history.isEmpty ? null : _game.history.last.move.toAlgebraic;
 
   void initGame(String gameId, bool isWhite, String userId) {
     _gameId = gameId;
