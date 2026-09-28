@@ -1,3 +1,7 @@
+// ============================================================================
+// Section: External Library & Application Module Imports
+// Imports Flutter Material UI, Clipboard services, Provider, ChessProvider, simple board types, and TapChessBoard.
+// ============================================================================
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -5,19 +9,44 @@ import 'package:chess_live/providers/chess_provider.dart';
 import 'package:simple_chess_board/simple_chess_board.dart';
 import 'package:chess_live/widgets/tap_chess_board.dart';
 
+// ============================================================================
+// Section: Gameplay Screen Widget (`GameScreen`)
+// Primary interactive gameplay screen widget.
+// ============================================================================
 class GameScreen extends StatefulWidget {
+  // --------------------------------------------------------------------------
+  // Sub-Block: Constructor
+  // Standard const constructor with optional widget key parameter.
+  // --------------------------------------------------------------------------
   const GameScreen({super.key});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
+// ============================================================================
+// Section: Gameplay Screen State & User Interactions (`_GameScreenState`)
+// Manages gameplay screen lifecycle, game over popups, pawn promotion dialogs, and game actions.
+// ============================================================================
 class _GameScreenState extends State<GameScreen> {
+  // --------------------------------------------------------------------------
+  // Sub-Block: Announced Result Tracker
+  // Prevents duplicate dialog popups by tracking previously announced game outcome.
+  // --------------------------------------------------------------------------
   String? _announcedResult;
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Main Gameplay Layout Builder (`build`)
+  // Renders AppBar with Game ID copy action, turn status banner, player orientation info,
+  // interactive TapChessBoard widget, Resign/Rematch actions, and move history log container.
+  // --------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ----------------------------------------------------------------------
+      // Sub-Block: AppBar & Copy Game ID Action
+      // AppBar containing IconButton to copy active Game ID to system clipboard.
+      // ----------------------------------------------------------------------
       appBar: AppBar(
         title: const Text('ChessLive'),
         actions: [
@@ -36,15 +65,29 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
       ),
+
+      // ----------------------------------------------------------------------
+      // Sub-Block: Main Screen Body & Consumer Subscription
+      // Listens to ChessProvider state changes to re-render board, status, and move log.
+      // ----------------------------------------------------------------------
       body: Consumer<ChessProvider>(
         builder: (context, provider, child) {
           _maybeAnnounceResult(provider);
           return Column(
             children: [
+              // --------------------------------------------------------------
+              // Sub-Block: Turn Status Card Banner
+              // Displays game status message and active check warning.
+              // --------------------------------------------------------------
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: _GameStatus(provider: provider),
               ),
+
+              // --------------------------------------------------------------
+              // Sub-Block: Player Color Assignment Row
+              // Displays player role indicators for top/bottom player colors.
+              // --------------------------------------------------------------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
@@ -59,6 +102,11 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
               ),
+
+              // --------------------------------------------------------------
+              // Sub-Block: Chess Board Container Widget
+              // Wraps TapChessBoard widget in AspectRatio container centered on screen.
+              // --------------------------------------------------------------
               Expanded(
                 child: Center(
                   child: AspectRatio(
@@ -77,6 +125,12 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+
+              // --------------------------------------------------------------
+              // Sub-Block: Game End Actions (Rematch vs Resign Buttons)
+              // Displays game over outcome text & New Game/Rematch button when finished,
+              // or Resign button during active gameplay.
+              // --------------------------------------------------------------
               if (provider.isGameOver)
                 Column(
                   children: [
@@ -103,6 +157,11 @@ class _GameScreenState extends State<GameScreen> {
                       const Text('Resign', style: TextStyle(color: Colors.red)),
                 ),
               const SizedBox(height: 10),
+
+              // --------------------------------------------------------------
+              // Sub-Block: Move History Scroll Log
+              // Displays scrollable list of executed moves in SAN format.
+              // --------------------------------------------------------------
               Container(
                 height: 88,
                 width: double.infinity,
@@ -129,6 +188,10 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Pawn Promotion Selection Dialog (`_handlePromotion`)
+  // Displays AlertDialog for user to select promotion piece (Queen, Rook, Bishop, Knight).
+  // --------------------------------------------------------------------------
   Future<PieceType?> _handlePromotion(BuildContext context) async {
     return await showDialog<PieceType>(
       context: context,
@@ -159,6 +222,10 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Board Move Execution Handler (`_moveFromBoard`)
+  // Detects pawn promotion moves to trigger promotion selection dialog, then submits move map to provider.
+  // --------------------------------------------------------------------------
   Future<void> _moveFromBoard(
     ChessProvider provider,
     String from,
@@ -173,6 +240,10 @@ class _GameScreenState extends State<GameScreen> {
     await provider.makeMove({'from': from, 'to': to, 'promotion': promotion});
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Action Error Handling Wrapper (`_runGameAction`)
+  // Runs async game actions (Resign/Reset) and catches exceptions to display SnackBar alerts.
+  // --------------------------------------------------------------------------
   Future<void> _runGameAction(
     BuildContext context,
     Future<void> Function() action,
@@ -189,6 +260,10 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Game Over Dialog Trigger (`_maybeAnnounceResult`)
+  // Triggers post-frame barrier-dismissible AlertDialog when game ends in checkmate or draw.
+  // --------------------------------------------------------------------------
   void _maybeAnnounceResult(ChessProvider provider) {
     final result = provider.gameResult;
     if (!provider.isGameOver) {
@@ -218,11 +293,23 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
+// ============================================================================
+// Section: Game Status Banner Component Widget (`_GameStatus`)
+// Displays current turn message badge ("Your move", "Check", "Game over", etc.)
+// ============================================================================
 class _GameStatus extends StatelessWidget {
+  // --------------------------------------------------------------------------
+  // Sub-Block: Constructor & Parameters
+  // Requires ChessProvider instance reference to compute status message & color.
+  // --------------------------------------------------------------------------
   const _GameStatus({required this.provider});
 
   final ChessProvider provider;
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Status Banner UI Builder (`build`)
+  // Computes status message string and badge color based on turn, check, or game over state.
+  // --------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final waiting = provider.status == 'waiting';

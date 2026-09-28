@@ -1,10 +1,27 @@
+// ============================================================================
+// Section: External Library & Model Imports
+// Imports Cloud Firestore, GameModel data structure, and chess engine library.
+// ============================================================================
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:chess_live/models/game_model.dart';
 import 'package:chess/chess.dart' as chess;
 
+// ============================================================================
+// Section: Game Firestore Database Service (`GameService`)
+// Service class providing Firestore API interactions for game creation, matchmaking, streaming, and move updates.
+// ============================================================================
 class GameService {
+  // --------------------------------------------------------------------------
+  // Sub-Block: Database Instance Reference
+  // Singleton instance reference for FirebaseFirestore client.
+  // --------------------------------------------------------------------------
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Game Creation Handler (`createGame`)
+  // Initializes a new game document in Firestore with default chess FEN, initial turn 'w',
+  // and status 'waiting'. Returns the generated document ID.
+  // --------------------------------------------------------------------------
   Future<String> createGame(String userId) async {
     final game = GameModel(
       id: '',
@@ -20,6 +37,11 @@ class GameService {
     return ref.id;
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Game Join Transaction (`joinGame`)
+  // Executes atomic transaction to assign joining player as blackPlayerId and update game status to 'active'.
+  // Validates game existence, preventing self-joining or joining full games.
+  // --------------------------------------------------------------------------
   Future<void> joinGame(String gameId, String userId) async {
     final ref = _db.collection('games').doc(gameId);
     await _db.runTransaction((transaction) async {
@@ -43,6 +65,10 @@ class GameService {
     });
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Real-Time Game Document Stream (`streamGame`)
+  // Subscribes to Firestore document changes for gameId and maps snapshots to GameModel.
+  // --------------------------------------------------------------------------
   Stream<GameModel> streamGame(String gameId) {
     return _db
         .collection('games')
@@ -51,6 +77,11 @@ class GameService {
         .map((doc) => GameModel.fromFirestore(doc));
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Move Submission Transaction (`submitMove`)
+  // Validates player identity, turn order, and concurrent board state match before atomically
+  // updating board FEN, move PGN history, turn color, and final game result in Firestore.
+  // --------------------------------------------------------------------------
   Future<void> submitMove({
     required String gameId,
     required String userId,
@@ -87,6 +118,10 @@ class GameService {
     });
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Game Resignation Handler (`resignGame`)
+  // Allows an active player to resign, changing status to 'finished' and recording winner in Firestore.
+  // --------------------------------------------------------------------------
   Future<void> resignGame(String gameId, String userId, bool isWhite) async {
     final ref = _db.collection('games').doc(gameId);
     await _db.runTransaction((transaction) async {
@@ -105,6 +140,10 @@ class GameService {
     });
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Game Rematch Reset Handler (`resetGame`)
+  // Resets a completed game back to default starting FEN and 'active' status for a rematch.
+  // --------------------------------------------------------------------------
   Future<void> resetGame(String gameId, String userId) async {
     final newGame = chess.Chess();
     final ref = _db.collection('games').doc(gameId);

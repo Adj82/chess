@@ -1,6 +1,18 @@
+// ============================================================================
+// Section: External Library Imports
+// Imports Flutter Material UI library for custom chessboard rendering.
+// ============================================================================
 import 'package:flutter/material.dart';
 
+// ============================================================================
+// Section: Interactive TapChessBoard Widget (`TapChessBoard`)
+// Custom StatefulWidget implementing tap-to-select and tap-to-move chessboard grid interface.
+// ============================================================================
 class TapChessBoard extends StatefulWidget {
+  // --------------------------------------------------------------------------
+  // Sub-Block: Widget Constructor & Property Parameters
+  // Defines parameters for FEN string, player orientation, interactivity boolean, move callbacks, and last moves.
+  // --------------------------------------------------------------------------
   const TapChessBoard({
     super.key,
     required this.fen,
@@ -26,9 +38,21 @@ class TapChessBoard extends StatefulWidget {
   State<TapChessBoard> createState() => _TapChessBoardState();
 }
 
+// ============================================================================
+// Section: TapChessBoard State Logic (`_TapChessBoardState`)
+// Manages selected square state, handles user taps, and renders 8x8 grid cells.
+// ============================================================================
 class _TapChessBoardState extends State<TapChessBoard> {
+  // --------------------------------------------------------------------------
+  // Sub-Block: Selection State Tracking
+  // Currently highlighted selected origin square string (e.g. "e2").
+  // --------------------------------------------------------------------------
   String? _selectedSquare;
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Widget Update Lifecycle Hook (`didUpdateWidget`)
+  // Clears square selection when FEN board state updates or interactivity changes.
+  // --------------------------------------------------------------------------
   @override
   void didUpdateWidget(TapChessBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -37,6 +61,10 @@ class _TapChessBoardState extends State<TapChessBoard> {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: User Tap Input Handler (`_handleTap`)
+  // Evaluates tapped square: executes move if legal target square, or updates selection if player piece.
+  // --------------------------------------------------------------------------
   void _handleTap(String square) async {
     if (!widget.isInteractive) return;
     final selected = _selectedSquare;
@@ -57,6 +85,10 @@ class _TapChessBoardState extends State<TapChessBoard> {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Main Board Grid Builder (`build`)
+  // Builds outer board border and 8x8 GridView displaying all 64 chess squares.
+  // --------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final pieces = _piecesFromFen(widget.fen);
@@ -92,6 +124,10 @@ class _TapChessBoardState extends State<TapChessBoard> {
           final isLegalTarget = legalTargets.contains(square);
           final piece = pieces[square];
 
+          // ------------------------------------------------------------------
+          // Sub-Block: Square Cell Rendering & Tap Listener
+          // Renders cell background colors (normal light/dark, selected yellow, last move highlight).
+          // ------------------------------------------------------------------
           return Semantics(
             button: true,
             label: '$square${piece == null ? '' : ', $piece'}',
@@ -110,6 +146,10 @@ class _TapChessBoardState extends State<TapChessBoard> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
+                    // --------------------------------------------------------
+                    // Sub-Block: Legal Target Move Indicator Overlay
+                    // Draws dot overlay on empty target squares and border ring on target capture squares.
+                    // --------------------------------------------------------
                     if (isLegalTarget)
                       Container(
                         width: piece == null ? 15 : double.infinity,
@@ -129,6 +169,11 @@ class _TapChessBoardState extends State<TapChessBoard> {
                                   width: 4),
                         ),
                       ),
+
+                    // --------------------------------------------------------
+                    // Sub-Block: Chess Piece Symbol Text Display
+                    // Displays Unicode glyph for chess pieces positioned on current square.
+                    // --------------------------------------------------------
                     if (piece != null)
                       Text(
                         _pieceGlyph(piece),
@@ -143,6 +188,11 @@ class _TapChessBoardState extends State<TapChessBoard> {
                           ],
                         ),
                       ),
+
+                    // --------------------------------------------------------
+                    // Sub-Block: Rank & File Coordinate Corner Labels
+                    // Displays file letters ('a'-'h') on bottom row and rank numbers (1-8) on left column.
+                    // --------------------------------------------------------
                     if (column == 0)
                       Positioned(
                         top: 2,
@@ -167,6 +217,10 @@ class _TapChessBoardState extends State<TapChessBoard> {
     );
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: FEN Board Parser (`_piecesFromFen`)
+  // Parses chess FEN placement string into a Map of algebraic squares to piece characters.
+  // --------------------------------------------------------------------------
   Map<String, String> _piecesFromFen(String fen) {
     final pieces = <String, String>{};
     final rows = fen.split(' ').first.split('/');
@@ -186,8 +240,16 @@ class _TapChessBoardState extends State<TapChessBoard> {
     return pieces;
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: White Piece Checker (`_isWhitePiece`)
+  // Returns true if piece character is uppercase (White piece convention).
+  // --------------------------------------------------------------------------
   bool _isWhitePiece(String piece) => piece == piece.toUpperCase();
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Piece Character to Unicode Glyph Converter (`_pieceGlyph`)
+  // Maps standard FEN piece characters ('K','Q','R','B','N','P', etc.) to Unicode chess symbols.
+  // --------------------------------------------------------------------------
   String _pieceGlyph(String piece) {
     const glyphs = {
       'K': '♔',
@@ -206,6 +268,10 @@ class _TapChessBoardState extends State<TapChessBoard> {
     return glyphs[piece]!;
   }
 
+  // --------------------------------------------------------------------------
+  // Sub-Block: Coordinate Text Style Helper (`_coordinateStyle`)
+  // Computes contrasting text style for rank/file label text based on square light/dark background.
+  // --------------------------------------------------------------------------
   TextStyle _coordinateStyle(bool isLight) => TextStyle(
         color: isLight ? const Color(0xffb58863) : const Color(0xfff0d9b5),
         fontSize: 11,
